@@ -1,9 +1,0 @@
-/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/deps/libiana_time_zone-06283feb7db532f3.rmeta: /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/lib.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/ffi_utils.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/tz_macos.rs
-
-/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/deps/libiana_time_zone-06283feb7db532f3.rlib: /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/lib.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/ffi_utils.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/tz_macos.rs
-
-/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/deps/iana_time_zone-06283feb7db532f3.d: /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/lib.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/ffi_utils.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/tz_macos.rs
-
-/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/lib.rs:
-/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/ffi_utils.rs:
-/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/iana-time-zone-0.1.60/src/tz_macos.rs:
