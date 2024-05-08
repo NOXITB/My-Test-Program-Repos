@@ -1,0 +1,72 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Message Sender</title>
+        <link rel="stylesheet" href="/styles.css"> <!-- Link to the external CSS file -->
+    </head>
+<body>
+    <h1>Send a Message</h1>
+    <form id="messageForm">
+        <label for="message">Message:</label><br>
+        <input type="text" id="message" name="message"><br><br>
+        <button type="submit">Send</button>
+    </form>
+
+    <div id="messages"></div>
+    <button id="loadHistoryButton">Load History</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on('message', (message) => {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.innerHTML = `<span class="sender">${message.sender}:</span><span class="content">${message.content}</span>`;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        document.getElementById('messageForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const message = document.getElementById('message').value;
+            const response = await fetch('/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: message })
+            });
+
+            if (response.ok) {
+                document.getElementById('message').value = '';
+            } else {
+                alert('Failed to send message!');
+            }
+        });
+
+        document.getElementById('loadHistoryButton').addEventListener('click', async () => {
+            const response = await fetch('/history');
+            if (response.ok) {
+                const history = await response.json();
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = ''; // Clear existing messages
+                history.forEach((message) => {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('message');
+                    messageElement.innerHTML = `<span class="sender">${message.sender}:</span><span class="content">${message.content}</span>`;
+                    messagesDiv.appendChild(messageElement);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } else {
+                alert('Failed to load message history!');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!-- views/room.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= roomName %> Room</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h2>Welcome to <%= roomName %> Room</h2>
+    <div id="chatMessages">
+        <% messages.forEach(message => { %>
+            <div><%= message %></div>
+        <% }); %>
+    </div>
+    <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button type="submit">Send</button>
+    </form>
+    <script src="/js/script.js"></script>
+</body>
+</html>
