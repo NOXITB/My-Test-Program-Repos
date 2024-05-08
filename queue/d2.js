@@ -6,10 +6,12 @@ const { MongoClient } = require('mongodb');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const puppeteer = require('puppeteer');
 
 const MEMORY_THRESHOLD_GB = 64; // Memory threshold in GB
 const DATA_FOLDER = 'storedData'; // Folder for storing data files
 const UPLOAD_DELAY_MS = 1000; // Delay between each upload operation in milliseconds
+const JS_RENDER_THRESHOLD = 10; // Example: If a page has more than 10 script tags, use Puppeteer
 
 // Function to create the data folder if it doesn't exist
 function ensureDataFolderExists() {
@@ -19,21 +21,44 @@ function ensureDataFolderExists() {
   }
 }
 
-async function fetchWithRetry(url, maxRetries = 1) {
-  let retries = 0;
-  while (retries < maxRetries) {
-    try {
-      const response = await axios.get(url);
-      return response;
-    } catch (error) {
-      console.error(`HTTP request failed: ${error.message}`);
-      retries++;
-      console.log(`Retrying (${retries}/${maxRetries})...`);
-      // Re-add failed URL to the queue for retrying
-      channel.sendToQueue(queue, Buffer.from(url));
-    }
+async function fetchPage(url) {
+  // Check if the URL requires JavaScript rendering
+  const usePuppeteer = await shouldUsePuppeteer(url);
+  
+  if (usePuppeteer) {
+    return fetchPageWithPuppeteer(url);
+  } else {
+    return fetchPageWithAxios(url);
   }
-  throw new Error('Max retries exceeded. HTTP request failed.');
+}
+
+async function shouldUsePuppeteer(url) {
+  // Determine if Puppeteer should be used based on certain criteria
+  // For example, you can check the presence of JavaScript-heavy elements or a predefined list of URLs
+  const response = await axios.get(url);
+  const dom = new JSDOM(response.data);
+  const scriptTags = dom.window.document.querySelectorAll('script');
+  const totalScriptTags = scriptTags.length;
+  
+  if (totalScriptTags > JS_RENDER_THRESHOLD) {
+    return true;
+  }
+  
+  return false;
+}
+
+async function fetchPageWithAxios(url) {
+  const response = await axios.get(url);
+  return response.data;
+}
+
+async function fetchPageWithPuppeteer(url) {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle2' });
+  const html = await page.content();
+  await browser.close();
+  return html;
 }
 
 async function main() {
@@ -61,10 +86,8 @@ async function main() {
       const url = msg.content.toString();
       console.log(`[x] Received ${url}`);
 
-      const response = await fetchWithRetry(url);
-      console.log(`[x] Crawled ${url}, status: ${response.status}`);
-
-      const dom = new JSDOM(response.data, { url });
+      const html = await fetchPage(url);
+      const dom = new JSDOM(html, { url });
       const parsedUrl = new URL(url);
       const hostnameParts = parsedUrl.hostname.split('.'); // Split hostname into parts
       let baseDomain = '';
@@ -85,7 +108,7 @@ async function main() {
       }
 
       const collection = db.collection('crawledData');
-      
+
       // Insert or update the document in the database
       await collection.updateOne(
         { domain: baseDomain },
@@ -98,11 +121,16 @@ async function main() {
         return new URL(href, url).href;
       });
 
-      // Send found links to the queue
-      links.forEach(link => {
-        channel.sendToQueue(queue, Buffer.from(link));
+      // Insert found links into the database
+      for (const link of links) {
+        await collection.updateOne(
+          { domain: baseDomain },
+          { $addToSet: { [`subdomains.${subdomain || 'base'}`]: link } },
+          { upsert: true }
+        );
         console.log(`[x] Found link: ${link}`);
-      });
+        channel.sendToQueue(queue, Buffer.from(link));
+      }
 
       // Send stats to the stats queue
       const stats = {

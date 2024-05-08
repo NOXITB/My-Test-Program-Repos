@@ -1,63 +1,37 @@
-use std::{
-    collections::HashSet,
-    time::{Duration, Instant},
-};
-
+use futures_util::future::join_all;
 use lapin::{
-    options::*, types::FieldTable, BasicProperties, Connection, ConnectionProperties, Consumer,
-    ConsumerDelegate,
+    options::{QueueDeclareOptions, QueueDeleteOptions, BasicAckOptions},
+    types::FieldTable,
+    Channel, Connection, ConnectionProperties,
 };
-use mongodb::{bson::doc, Client};
-use reqwest;
-use serde::Deserialize;
-use tokio::time;
-
-const MAX_RETRIES: usize = 3;
-const CRAWL_DELAY_MS: u64 = 1000;
-
-#[derive(Debug, Deserialize)]
-struct UrlSet {
-    url: Vec<Url>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Url {
-    loc: Vec<String>,
-}
-
-async fn fetch_with_retry(url: &str, max_retries: usize) -> Result<reqwest::Response, reqwest::Error> {
-    for retries in 0..max_retries {
-        match reqwest::get(url).await {
-            Ok(response) => return Ok(response),
-            Err(error) => {
-                println!("HTTP request failed: {}", error);
-                println!("Retrying ({}/{})", retries + 1, max_retries);
-                time::sleep(Duration::from_millis(1000 * 2_u64.pow(retries as u32))).await;
-            }
-        }
-    }
-    Err(reqwest::Error::from(reqwest::StatusCode::INTERNAL_SERVER_ERROR))
-}
-
-async fn parse_sitemap(url: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let response = fetch_with_retry(url, MAX_RETRIES).await?;
-    let xml = response.text().await?;
-    let url_set: UrlSet = quick_xml::de::from_str(&xml)?;
-    let urls: Vec<String> = url_set.url.iter().flat_map(|u| u.loc.clone()).collect();
-    Ok(urls)
-}
+use mongodb::{options::ClientOptions, Client};
+use quick_xml::de::from_str;
+use reqwest::Client as HttpClient;
+use scraper::{Html, Selector};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::fs;
+use std::time::Duration;
+use tokio::time::sleep;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Enable the `serialize` feature for `quick_xml`
-    let _ = quick_xml::Builder::new().serialize().build();
+async fn main() {
+    if let Err(e) = run().await {
+        eprintln!("Error: {}", e);
+    }
+}
 
-    let amqp_connection = Connection::connect(
-        "amqp://10.1.0.76",
-        ConnectionProperties::default().with_tokio_executor(),
-    )
-    .await?;
-    let channel = amqp_connection.create_channel().await?;
+async fn run() -> Result<(), Box<dyn std::error::Error>> {
+    // Setup connections
+    let mongo_url = "mongodb://admin:adminPassword@localhost:27017";
+    let mongo_client = Client::with_options(ClientOptions::parse(mongo_url).await?)?;
+    let db = mongo_client.database("mydatabase");
+
+    let amqp_url = "amqp://10.1.0.76";
+    let conn = Connection::connect(amqp_url, ConnectionProperties::default()).await?;
+    let channel = conn.create_channel().await?;
+
+    // Declare queues
     let queue = channel
         .queue_declare("urls", QueueDeclareOptions::default(), FieldTable::default())
         .await?;
@@ -65,54 +39,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .queue_declare("stats", QueueDeclareOptions::default(), FieldTable::default())
         .await?;
 
-    println!(
-        " [*] Waiting for messages in {}. To exit press CTRL+C",
-        queue.name().as_str()
-    );
+    // Placeholder for actual crawler implementation
+    crawl("http://example.com", &channel, &db).await?;
 
-    // Initialize visited_urls HashSet
-    let visited_urls = HashSet::new();
+    Ok(())
+}
 
-    // Define consumer handler
-    struct ConsumerHandler;
+async fn crawl(url: &str, channel: &Channel, db: &mongodb::Database) -> Result<(), Box<dyn std::error::Error>> {
+    let http_client = HttpClient::new();
+    let response = fetch_with_retry(&http_client, url, 3).await?;
+    let html = response.text().await?;
 
-    #[async_trait::async_trait]
-    impl ConsumerDelegate for ConsumerHandler {
-        async fn handle_delivery(
-            &self,
-            _channel: lapin::Channel,
-            delivery: lapin::message::Delivery,
-        ) {
-            if let Ok(Some(body)) = delivery.data.as_ref() {
-                let url = String::from_utf8_lossy(body).to_string();
-                println!("[x] Received {}", url);
+    let document = Html::parse_document(&html);
+    let selector = Selector::parse("a[href]").unwrap();
+    let found_urls = document
+        .select(&selector)
+        .filter_map(|x| x.value().attr("href"))
+        .collect::<Vec<_>>();
 
-                // Your processing logic here
+    // Database and channel operations would occur here
 
-                // Acknowledge message after processing
-                if let Err(err) = delivery
-                    .ack(BasicAckOptions::default())
-                    .await
-                {
-                    eprintln!("Error acknowledging message: {:?}", err);
-                }
-            }
-        }
+    Ok(())
+}
 
-        async fn on_new_delivery(
-            &self,
-            delivery: Result<std::option::Option<Delivery>, lapin::Error>,
-        ) -> Pin<Box<(dyn Future<Output = ()> + Send + 'static)>> {
-            // Implement your message processing logic here based on the delivery result
-            todo!()  // Replace with your actual processing logic
+async fn fetch_with_retry(client: &HttpClient, url: &str, max_retries: usize) -> Result<reqwest::Response, reqwest::Error> {
+    let mut retries = 0;
+    loop {
+        match client.get(url).send().await {
+            Ok(response) => return Ok(response),
+            Err(err) if retries < max_retries => {
+                retries += 1;
+                sleep(Duration::from_secs(2_u64.pow(retries as u32))).await;
+            },
+            Err(err) => return Err(err),
         }
     }
+}
 
-    let consumer = channel
-    .basic_consume(
-        "urls",
-        "consumer-1",
-        BasicConsumeOptions::default(),
-        FieldTable::default(), // Closing parenthesis added here
-    )
-    .await?;
+#[derive(Debug, Deserialize, Serialize)]
+struct SiteMap {
+    urlset: UrlSet,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct UrlSet {
+    url: Vec<UrlEntry>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct UrlEntry {
+    loc: String,
+}
+
+async fn parse_sitemap(xml: &str) -> Result<Vec<String>, serde_xml_rs::Error> {
+    let sitemap: SiteMap = from_str(xml)?;
+    Ok(sitemap.urlset.url.into_iter().map(|x| x.loc).collect())
+}
