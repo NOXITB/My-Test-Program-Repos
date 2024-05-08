@@ -8,7 +8,7 @@ async function main() {
   await channel.assertQueue(queue);
 
   // Example URLs to crawl
-  const urls = ['http://example.com', 'http://example.org', 'http://example.net', 'https://youtube.com', 'https://amazon.com', 'https://google.com'];
+  const urls = ['https://youtube.com'];
 
   urls.forEach(url => {
     channel.sendToQueue(queue, Buffer.from(url));

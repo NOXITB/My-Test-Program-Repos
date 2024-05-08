@@ -16,5 +16,11 @@ COPY . .
 # Expose the port your application runs on
 EXPOSE 3000
 
+# Copy start script into container
+COPY start.sh /app
+
+# Grant execute permission to start script
+RUN chmod +x /app/start.sh
+
 # Command to run your application
-CMD ["node", "do.js"]
+CMD ["./start.sh"]
