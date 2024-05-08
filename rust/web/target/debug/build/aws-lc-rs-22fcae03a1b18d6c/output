@@ -1,0 +1,3 @@
+cargo:include=/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/build/aws-lc-sys-bb24ddf095755945/out/include
+cargo:libcrypto=aws_lc_0_16_0_crypto
+cargo:root=/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/build/aws-lc-sys-bb24ddf095755945/out

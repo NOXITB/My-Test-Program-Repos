@@ -1,0 +1,10 @@
+/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/deps/libdes-51887dadaece96fe.rmeta: /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/lib.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/consts.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/des.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/tdes.rs
+
+/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/deps/libdes-51887dadaece96fe.rlib: /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/lib.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/consts.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/des.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/tdes.rs
+
+/Users/blakemaxwell2/Library/CloudStorage/OneDrive-Personal/All Stuff Old/Documents/GitHub/testing/rust/web/target/debug/deps/des-51887dadaece96fe.d: /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/lib.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/consts.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/des.rs /Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/tdes.rs
+
+/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/lib.rs:
+/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/consts.rs:
+/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/des.rs:
+/Users/blakemaxwell2/.cargo/registry/src/index.crates.io-6f17d22bba15001f/des-0.8.1/src/tdes.rs:
