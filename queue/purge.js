@@ -26,4 +26,4 @@ async function clearQueue(queueNames) {
   await mongoClient.close();
 }
 
-clearQueue(['urls_0', 'urls_1', 'urls_2', 'urls_3']).catch(console.error);
+clearQueue(['urls_0', 'urls_1', 'urls_2', 'urls_3', 'urls_4', 'urls_5', 'urls_6', 'urls_7', 'urls_8', 'urls_9', 'urls_11', 'urls_10']).catch(console.error);
