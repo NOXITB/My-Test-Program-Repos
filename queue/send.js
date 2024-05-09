@@ -8,12 +8,15 @@ async function main() {
   await channel.assertQueue(queue);
 
   // Example URLs to crawl
-  const urls = ['https://youtube.com'];
+  const urls = [ 'google.com', ]; // Just one URL for demonstration purposes
 
-  urls.forEach(url => {
-    channel.sendToQueue(queue, Buffer.from(url));
-    console.log(`[x] Sent ${url}`);
-  });
+  // Send each URL 10 times
+  for (let i = 0; i < urls.length; i++) {
+    for (let j = 0; j < 1000; j++) {
+      channel.sendToQueue(queue, Buffer.from(urls[i]));
+      console.log(`[x] Sent ${urls[i]}`);
+    }
+  }
 
   setTimeout(() => {
     connection.close();

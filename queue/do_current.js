@@ -6,9 +6,12 @@ const { MongoClient } = require('mongodb');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const puppeteer = require('puppeteer');
 
+const MEMORY_THRESHOLD_GB = 64; // Memory threshold in GB
 const DATA_FOLDER = 'storedData'; // Folder for storing data files
 const UPLOAD_DELAY_MS = 1000; // Delay between each upload operation in milliseconds
+const JS_RENDER_THRESHOLD = 10; // Example: If a page has more than 10 script tags, use Puppeteer
 
 // Function to create the data folder if it doesn't exist
 function ensureDataFolderExists() {
@@ -18,9 +21,38 @@ function ensureDataFolderExists() {
   }
 }
 
-async function fetchPage(url) {
+async function fetchPage(url, usePuppeteer = false) {
+  if (usePuppeteer) {
+    return fetchPageWithPuppeteer(url);
+  } else {
+    const response = await axios.get(url);
+    return response.data;
+  }
+}
+
+async function shouldUsePuppeteerThreshold(url) {
+  // Determine if Puppeteer should be used based on certain threshold criteria
   const response = await axios.get(url);
-  return response.data;
+  const dom = new JSDOM(response.data);
+  const scriptTags = dom.window.document.querySelectorAll('script');
+  const totalScriptTags = scriptTags.length;
+
+  if (totalScriptTags > JS_RENDER_THRESHOLD) {
+    return true;
+  }
+
+  return false;
+}
+
+async function fetchPageWithPuppeteer(url) {
+    const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle2' });
+  const html = await page.content();
+  await browser.close();
+  return html;
 }
 
 async function main() {
@@ -39,6 +71,8 @@ async function main() {
 
   console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
 
+  const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024); // Convert total memory to GB
+
   ensureDataFolderExists();
 
   async function processMessage(msg, channel) {
@@ -46,8 +80,18 @@ async function main() {
       const url = msg.content.toString();
       console.log(`[x] Received ${url}`);
 
-      const html = await fetchPage(url);
-      const dom = new JSDOM(html, { url });
+      let html = await fetchPage(url);
+      let dom;
+
+      // Check if Puppeteer should be used based on the threshold
+      const shouldUsePuppeteer = await shouldUsePuppeteerThreshold(url);
+
+      // If Puppeteer should be used, re-fetch the page
+      if (shouldUsePuppeteer) {
+        html = await fetchPage(url, true);
+      }
+
+      dom = new JSDOM(html, { url });
       const parsedUrl = new URL(url);
       const baseDomain = parsedUrl.hostname.split('.').slice(-2).join('.'); // Get base domain
 

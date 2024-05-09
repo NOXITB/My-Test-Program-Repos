@@ -5,7 +5,7 @@ const { URL } = require('url');
 const { MongoClient } = require('mongodb');
 const os = require('os');
 
-const MEMORY_THRESHOLD_GB = 16; // Memory threshold in GB
+const MEMORY_THRESHOLD_GB = 10006; // Memory threshold in GB
 
 async function fetchWithRetry(url, maxRetries = 3) {
   let retries = 0;
@@ -56,7 +56,7 @@ async function main() {
         return new URL(href, url).href;
       });
 
-      const collection = db.collection('crawledData');
+      const collection = db.collection('crawledData2');
       const crawledData = {
         url,
         status: response.status,

@@ -1,13 +1,15 @@
 const amqp = require('amqplib');
 const { MongoClient } = require('mongodb');
 
-async function clearQueue(queueName) {
+async function clearQueue(queueNames) {
   const connection = await amqp.connect('amqp://10.1.0.76'); // Use your RabbitMQ server IP
   const channel = await connection.createChannel();
 
-  await channel.assertQueue(queueName);
-  await channel.purgeQueue(queueName);
-  console.log(`Queue ${queueName} cleared.`);
+  for (const queueName of queueNames) {
+    await channel.assertQueue(queueName);
+    await channel.purgeQueue(queueName);
+    console.log(`Queue ${queueName} cleared.`);
+  }
 
   await channel.close();
   await connection.close();
@@ -19,9 +21,9 @@ async function clearQueue(queueName) {
   const db = mongoClient.db();
   const collection = db.collection('crawledData');
   await collection.deleteMany({});
-  console.log(`MongoDB collection for ${queueName} cleared.`);
+  console.log(`MongoDB collection for ${queueNames.join(', ')} cleared.`);
 
   await mongoClient.close();
 }
 
-clearQueue('urls').catch(console.error);
+clearQueue(['urls_0', 'urls_1', 'urls_2', 'urls_3']).catch(console.error);

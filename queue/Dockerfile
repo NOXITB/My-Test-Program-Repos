@@ -4,29 +4,18 @@ FROM node:latest
 # Set working directory inside the container
 WORKDIR /app
 
-# Install dependencies needed for Chromium
-RUN apt-get update && apt-get install -y \
-    chromium \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libdrm2 \
-    libgdk-pixbuf2.0-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-xcb1 \
-    libxcb-dri3-0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy package.json and package-lock.json to work directory
 COPY package*.json ./
 
+# Install necessary dependencies for Chromium
+RUN apt-get update && apt-get install -y \
+    chromium \
+    libnss3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 RUN npm install
+RUN npx @puppeteer/browsers install chrome@stable
 
 # Copy all source code to work directory
 COPY . .
