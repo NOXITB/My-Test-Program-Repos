@@ -1,0 +1,32 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+bower_components/
+jspm_packages/
+
+# Distribution directories
+dist/
+out/
+build/
+
+# Sensitive or high-churn files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

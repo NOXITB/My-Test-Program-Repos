@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Messaging System</title>
+    <link rel="stylesheet" href="/styles.css"> <!-- Include the styles.css file -->
+    <style>
+/* Style for the scroll to current link */
+#scrollToCurrent {
+    position: absolute;
+    top: -30px; /* Adjust as needed */
+    right: 20px;
+    display: none;
+    color: #7289DA;
+    cursor: pointer;
+    z-index: 999;
+}
+
+.form-container {
+    position: relative;
+}
+
+
+        .form-container #scrollToCurrent {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            bottom: 40px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="messages-container" id="messagesContainer" onscroll="handleScroll()">
+            <ul id="messagesList"></ul>
+        </div>
+        <div class="form-container">
+            <p id="scrollToCurrent" onclick="scrollToCurrent()">Scroll to Bottom</p>
+            <form id="messageForm">   
+                <input type="text" id="content" name="content" placeholder="Enter your message...">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+    
+
+    <script>
+        let autoScroll = true;
+
+        function fetchMessages() {
+            fetch('/messages')
+                .then(response => response.json())
+                .then(messages => {
+                    const messagesList = document.getElementById('messagesList');
+                    const messagesContainer = document.getElementById('messagesContainer');
+                    const shouldScrollToBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop === messagesContainer.clientHeight; // Check if already scrolled to bottom
+                    messagesList.innerHTML = '';
+                    messages.reverse().forEach(message => {
+                        const li = document.createElement('li');
+                        const timestamp = new Date(message.timestamp).toLocaleString(); // Format timestamp
+                        li.innerHTML = `<span class="timestamp">${timestamp}</span><span class="username">${message.username}:</span> ${message.content}`; // Display formatted message content, timestamp, and username
+                        li.classList.add(message.username === 'YourUsernameHere' ? 'user-message' : 'other-message'); // Add class based on message sender
+                        messagesList.appendChild(li);
+                    });
+                    if (autoScroll || shouldScrollToBottom) {
+                        scrollMessagesToBottom(); // Scroll to the bottom only if autoScroll is enabled or already scrolled to bottom
+                    } else {
+                        toggleScrollLink(true); // If scrolled up, show the scroll link
+                    }
+                })
+                .catch(error => console.error('Error fetching messages:', error));
+        }
+
+        // Function to scroll messages container to the bottom
+        function scrollMessagesToBottom() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            toggleScrollLink(false); // Hide the scroll link after scrolling to bottom
+        }
+
+        // Fetch messages initially
+        fetchMessages();
+
+        // Poll for new messages every 5 seconds
+        setInterval(fetchMessages, 500);
+
+        // Handle form submission
+        document.getElementById('messageForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission
+            const content = document.getElementById('content').value;
+            if (content.trim() !== '') { // Check if content is not empty
+                sendMessage(content);
+                autoScroll = true; // Enable auto-scroll after sending a message
+            }
+        });
+
+        // Function to send message
+        function sendMessage(content) {
+            fetch('/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content }) // Send content as JSON in the request body
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // Clear input field after successful message sending
+                        document.getElementById('content').value = '';
+                    } else {
+                        console.error('Failed to send message:', response.statusText);
+                    }
+                })
+                .catch(error => console.error('Error sending message:', error));
+        }
+
+        // Function to handle scroll event
+        function handleScroll() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer.scrollHeight - messagesContainer.scrollTop === messagesContainer.clientHeight) {
+                toggleScrollLink(false); // If scrolled to bottom, hide the scroll link
+            } else {
+                toggleScrollLink(true); // If scrolled up, show the scroll link
+                autoScroll = false; // Disable auto-scroll
+            }
+        }
+
+        // Function to toggle scroll link visibility
+        function toggleScrollLink(show) {
+            const scrollToCurrentLink = document.getElementById('scrollToCurrent');
+            if (show) {
+                scrollToCurrentLink.style.display = 'block';
+            } else {
+                scrollToCurrentLink.style.display = 'none';
+            }
+        }
+
+        // Function to scroll to current message and re-enable auto-scroll
+        function scrollToCurrent() {
+            scrollMessagesToBottom();
+            autoScroll = true;
+        }
+    </script>
+</body>
+</html>
