@@ -7,42 +7,40 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container-lgn">
         <div class="form-container">
             <h2>Welcome</h2>
-            <div id="login-form">
+            <div id="login-form" class="form active">
                 <h3>Login</h3>
                 <form action="/login" method="POST">
                     <input type="text" name="username" placeholder="Username" required>
                     <input type="password" name="password" placeholder="Password" required>
                     <button type="submit">Login</button>
                 </form>
-                <p>Don't have an account? <a href="#" onclick="toggleForm()">Register</a></p>
+                <p>Don't have an account? <a href="#" onclick="toggleForm('register')">Register</a></p>
             </div>
-            <div id="register-form" style="display: none;">
+            <div id="register-form" class="form">
                 <h3>Register</h3>
                 <form action="/register" method="POST">
                     <input type="text" name="username" placeholder="Username" required>
                     <input type="password" name="password" placeholder="Password" required>
                     <button type="submit">Register</button>
                 </form>
-                <p>Already have an account? <a href="#" onclick="toggleForm()">Login</a></p>
+                <p>Already have an account? <a href="#" onclick="toggleForm('login')">Login</a></p>
             </div>
         </div>
     </div>
     
     <script>
-        function toggleForm() {
-            var loginForm = document.getElementById("login-form");
-            var registerForm = document.getElementById("register-form");
-            
-            if (loginForm.style.display === "none") {
-                loginForm.style.display = "block";
-                registerForm.style.display = "none";
-            } else {
-                loginForm.style.display = "none";
-                registerForm.style.display = "block";
-            }
+        function toggleForm(formId) {
+            var forms = document.querySelectorAll('.form');
+            forms.forEach(form => {
+                if (form.id === formId + '-form') {
+                    form.classList.add('active');
+                } else {
+                    form.classList.remove('active');
+                }
+            });
         }
     </script>
 </body>

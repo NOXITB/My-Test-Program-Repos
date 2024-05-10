@@ -148,7 +148,10 @@ function isAuthenticated(req, res, next) {
     const token = req.cookies.token;
     if (!token) {
         // Redirect to login/register if not authenticated
-        return res.redirect('/login-register');
+        if (req.path === '/send') {
+            return res.redirect('/login-register');
+        }
+        return res.redirect('/');
     }
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);

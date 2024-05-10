@@ -67,6 +67,7 @@ app.get('/logout', (req, res) => {
 });
 
 // Send message route
+// Send message route
 app.post('/send', isAuthenticated, async (req, res) => {
     try {
         const { content } = req.body; // Extract content from request body
@@ -84,6 +85,7 @@ app.post('/send', isAuthenticated, async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 // Display messages route
 app.get('/messages', async (req, res) => {
@@ -147,13 +149,14 @@ wss.on('connection', (ws) => {
 function isAuthenticated(req, res, next) {
     const token = req.cookies.token;
     if (!token) {
-        // Redirect to login/register if not authenticated
-        return res.redirect('/login-register');
+        // Respond with 401 status code if not authenticated
+        return res.status(401).send('Unauthorized');
     }
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         next();
     } catch (err) {
-        return res.redirect('/login-register');
+        return res.status(401).send('Unauthorized');
     }
 }
+
