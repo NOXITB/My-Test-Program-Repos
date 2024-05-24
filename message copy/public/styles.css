@@ -1,0 +1,175 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1f1f1f; /* Dark background */
+    color: #fff; /* Light text color */
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 20px;
+}
+
+.messages-container {
+    flex-grow: 1;
+    overflow-y: auto; /* Enable vertical scroll for overflow */
+    padding: 10px; /* Add padding for larger screens */
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    word-wrap: break-word; /* Allow long words to wrap */
+}
+
+.user-message {
+    background-color: #800080; /* Purple bubble for user messages */
+}
+
+.other-message {
+    background-color: #333; /* Darker background for other messages */
+}
+
+.timestamp {
+    font-size: 0.8em; /* Smaller font size for timestamp */
+    color: #888; /* Lighter color for timestamp */
+}
+
+.username {
+    font-weight: bold; /* Bold username */
+    color: #800080; /* Purple color for username */
+}
+
+.form-container {
+    margin-top: 20px; /* Add some space between messages and form */
+}
+
+.container-send {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    
+}
+
+input[type="text"],
+button {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+input[type="text"] {
+    background-color: #333; /* Darker background for input */
+    color: #fff; /* Light text color */
+}
+
+button {
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Media query for larger screens */
+@media screen and (min-width: 768px) {
+    .container {
+        padding: 20px 40px; /* Increased padding */
+    }
+}
+
+
+input[type="text"],
+input[type="password"],
+button {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+input[type="text"],
+input[type="password"] {
+    background-color: #333; /* Darker background for input */
+    color: #fff; /* Light text color */
+}
+
+button {
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Media query for larger screens */
+@media screen and (min-width: 768px) {
+    .container {
+        padding: 20px 40px; /* Increased padding */
+    }
+}
+
+.container-lgn {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+
+
+
+.form {
+    display: none;
+    transition: opacity 0.3s ease;
+}
+
+.form.active {
+    display: block;
+    opacity: 1;
+}
+
+form {
+    text-align: center;
+}
+
+h3 {
+    margin-bottom: 20px;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}

@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const amqp = require('amqplib');
 const WebSocket = require('ws');
 require('dotenv').config();
 
@@ -14,6 +15,16 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 // Import models
 const User = require('./models/user'); // Import User model
 const Message = require('./models/message'); // Import Message model
+
+// Connect to RabbitMQ and publish messages
+async function connectRabbitMQAndPublish() {
+    const connection = await amqp.connect(process.env.RABBITMQ_URI);
+    const channel = await connection.createChannel();
+    const exchange = 'messages_exchange';
+    await channel.assertExchange(exchange, 'fanout', { durable: false });
+
+    return channel;
+}
 
 // Initialize Express app
 const app = express();
@@ -56,6 +67,7 @@ app.get('/logout', (req, res) => {
 });
 
 // Send message route
+// Send message route
 app.post('/send', isAuthenticated, async (req, res) => {
     try {
         const { content } = req.body; // Extract content from request body
@@ -63,16 +75,10 @@ app.post('/send', isAuthenticated, async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const username = decoded.username;
 
-        const message = new Message({ content, username }); // Include username when creating the message
+        const message = new Message({ content, username });
         await message.save(); // Save message to database
-
-        // Send message to all connected WebSocket clients
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(message));
-            }
-        });
-
+        const channel = await connectRabbitMQAndPublish();
+        channel.publish('messages_exchange', '', Buffer.from(JSON.stringify(message)));
         res.sendStatus(200); // Send success response
     } catch (err) {
         console.error('Error sending message:', err);
@@ -118,32 +124,19 @@ const wss = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
     console.log('WebSocket connected');
 
-    // Send existing messages to the client upon connection
+    // Send existing messages to the client
     Message.find().sort({ timestamp: -1 }).then(messages => {
-        messages.forEach(message => {
-            ws.send(JSON.stringify(message));
-        });
+        ws.send(JSON.stringify(messages));
     });
 
-    // Handle new WebSocket messages
-    ws.on('message', async (message) => {
-        message = JSON.parse(message);
-        try {
-            const token = message.token;
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const username = decoded.username;
-            const newMessage = new Message({ content: message.content, username });
-            await newMessage.save();
-
-            // Broadcast new message to all connected WebSocket clients
-            wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(newMessage));
-                }
-            });
-        } catch (error) {
-            console.error('Error processing message:', error);
-        }
+    // Listen for new messages from RabbitMQ and send them to the client
+    connectRabbitMQAndPublish().then(channel => {
+        channel.assertQueue('', { exclusive: true }).then(q => {
+            channel.bindQueue(q.queue, 'messages_exchange', '');
+            channel.consume(q.queue, (msg) => {
+                ws.send(msg.content.toString());
+            }, { noAck: true });
+        });
     });
 
     // Handle WebSocket close event
@@ -166,3 +159,4 @@ function isAuthenticated(req, res, next) {
         return res.status(401).send('Unauthorized');
     }
 }
+

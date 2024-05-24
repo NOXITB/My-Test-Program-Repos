@@ -1,0 +1,5 @@
+# Ignore Node.js modules
+node_modules/* linguist-vendored
+
+# Ignore environment files
+*.env linguist-vendored

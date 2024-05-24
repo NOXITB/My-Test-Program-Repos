@@ -31,36 +31,23 @@ function checkScrollPosition() {
     isScrolledUp = distanceFromBottom > 10; // Consider the user scrolled up if the distance from the bottom is less than 10 pixels
 }
 
-// Function to fetch messages
-function fetchMessages() {
-    fetch('/messages')
-        .then(response => response.json())
-        .then(messages => {
-            const messagesList = document.getElementById('messagesList');
-            const messagesContainer = document.getElementById('messagesContainer');
-            const shouldMaintainScrollPosition = isScrolledUp; // Maintain scroll position if scrolled up
-            const prevScrollHeight = messagesContainer.scrollHeight; // Store previous scroll height
-            messagesList.innerHTML = '';
-            messages.reverse().forEach(message => {
-                const li = document.createElement('li');
-                const timestamp = new Date(message.timestamp).toLocaleString();
-                li.innerHTML = `<span class="timestamp">${timestamp}</span><span class="username">${message.username}:</span> ${message.content}`;
-                li.classList.add(message.username === 'YourUsernameHere' ? 'user-message' : 'other-message');
-                messagesList.appendChild(li);
-            });
-            if (!shouldMaintainScrollPosition) {
-                scrollMessagesToBottom(); // Scroll to the bottom only if not scrolled up
-            } else {
-                // If scrolled up, maintain the scroll position
-                messagesContainer.scrollTop += messagesContainer.scrollHeight - prevScrollHeight;
-            }
-        })
-        .catch(error => console.error('Error fetching messages:', error))
-        .finally(() => {
-            if (!isScrolledUp) {
-                scrollMessagesToBottom(); // Scroll to the bottom if not scrolled up
-            }
-        });
+const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+// Function to handle incoming messages from WebSocket
+ws.onmessage = function(event) {
+    const message = JSON.parse(event.data);
+    displayMessage(message);
+};
+
+// Function to display a message on the UI
+function displayMessage(message) {
+    const messagesList = document.getElementById('messagesList');
+    const li = document.createElement('li');
+    const timestamp = new Date(message.timestamp).toLocaleString();
+    li.innerHTML = `<span class="timestamp">${timestamp}</span><span class="username">${message.username}:</span> ${message.content}`;
+    li.classList.add(message.username === 'YourUsernameHere' ? 'user-message' : 'other-message');
+    messagesList.appendChild(li);
+    scrollMessagesToBottom();
 }
 
 // Function to scroll messages container to the bottom
@@ -68,15 +55,6 @@ function scrollMessagesToBottom() {
     const messagesContainer = document.getElementById('messagesContainer');
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
-
-// Fetch messages initially
-fetchMessages();
-
-// Poll for new messages every 5 seconds
-setInterval(fetchMessages, 500);
-
-// Handle scroll event
-document.getElementById('messagesContainer').addEventListener('scroll', checkScrollPosition);
 
 // Handle form submission
 document.getElementById('messageForm').addEventListener('submit', function(event) {
@@ -87,26 +65,31 @@ document.getElementById('messageForm').addEventListener('submit', function(event
     }
 });
 
-// Function to send message
-function sendMessage(content) {
-    fetch('/send', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content })
-    })
-    .then(response => {
-        if (response.ok) {
-            document.getElementById('content').value = '';
-        } else if (response.status === 401) {
-            window.location.href = '/login-register';
-        } else {
-            console.error('Failed to send message:', response.statusText);
-        }
-    })
-    .catch(error => console.error('Error sending message:', error));
-}
+
+// Send message route
+app.post('/send', isAuthenticated, async (req, res) => {
+    try {
+        const { content } = req.body; // Extract content from request body
+        const token = req.cookies.token;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const username = decoded.username;
+
+        const message = new Message({ content, username }); // Include username when creating the message
+        await message.save(); // Save message to database
+
+        // Send message to all connected WebSocket clients
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(message));
+            }
+        });
+
+        res.sendStatus(200); // Send success response
+    } catch (err) {
+        console.error('Error sending message:', err);
+        res.status(500).send('Internal Server Error');
+    }
+});
 
 
     </script>
