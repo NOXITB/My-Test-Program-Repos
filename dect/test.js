@@ -88,13 +88,13 @@ async function scanUrl(url) {
           }
         }
       );
-      return response.data.data.attributes.stats; // Return the analysis stats
+      console.log('Analysis Info:', response.data.data.attributes.stats);
+      return response.data.data.attributes; // Return the analysis stats
     } catch (error) {
       console.error('Error retrieving analysis report from VirusTotal:', error);
       return null;
     }
   }
-  
   
 
 
@@ -142,45 +142,47 @@ client.on('messageCreate', async message => {
         const containsLink = /(https?:\/\/[^\s]+)/.test(message.content);
         let isMaliciousLink = false;
         let maliciousDetails = "";
-        const safeUrls = ['discord.gg', 'discord.com', 'discordapp.com', 'twitter.com', 'reddit.com', 'youtube.com', 'twitch.tv', 'github.com', 'stackoverflow.com', 'wikipedia.org', 'google.com', 'amazon.com', 'microsoft.com', 'apple.com', 'spotify.com', 'netflix.com', 'instagram.com', 'linkedin.com', 'medium.com', 'dropbox.com', 'slack.com', 'trello.com', 'zoom.us', 'bit.ly', 't.co', 'ow.ly', 'imgur.com', 'gfycat.com', 'gyazo.com', 'streamable.com', 'tenor.com', 'giphy.com', 'imgflip.com', 'pbs.twimg.com', 'discordemoji.com', 'steamcommunity.com', 'gamerant.com', 'gamespot.com', 'kotaku.com', 'ign.com', 'polygon.com', 'npr.org', 'bbc.com', 'cnn.com', 'nytimes.com', 'wired.com', 'arstechnica.com', 'forbes.com', 'businessinsider.com', 'cnbc.com', 'investopedia.com', 'wsj.com'];
-
+        const safeUrls = ['discord.gg', 'discord.com', 'discordapp.com'];
 
         if (containsLink) {
             const links = message.content.match(/(https?:\/\/[^\s]+)/g);
             for (const link of links) {
-                const urlObj = new URL(link);
-                if (safeUrls.includes(urlObj.hostname)) {
-                    continue;
+              const urlObj = new URL(link);
+              if (safeUrls.includes(urlObj.hostname)) {
+                continue;
+              }
+          
+              const analysisId = await scanUrl(link);
+              if (!analysisId) continue;
+          
+              // Wait for a moment to allow the analysis to be processed
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 5 seconds (adjust as needed)
+          
+              const urlReport = await axios.get(
+                `https://www.virustotal.com/api/v3/analyses/${analysisId}/item`,
+                {
+                  headers: {
+                    'x-apikey': process.env.VIRUSTOTAL_API_KEY,
+                    'Accept': 'application/json'
+                  }
                 }
-
-                const analysisId = await scanUrl(link);
-                if (!analysisId) continue;
-
-                // Wait for a moment to allow the analysis to be processed
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 30 seconds
-                const urlReport = await axios.get(
-                    `https://www.virustotal.com/api/v3/analyses/${analysisId}/item`,
-                    {
-                      headers: {
-                        'x-apikey': process.env.VIRUSTOTAL_API_KEY,
-                        'Accept': 'application/json'
-                      }
-                    }
-                  );
-
-                const analysisStats = await getAnalysisReport(analysisId);
-                const normalizedUrl = urlReport.data.data;
-                const selfLink = normalizedUrl.links.self;
-                const idls = selfLink.split('/').pop(); // Extracts the last part of the URL after the last '/'
-                console.log(idls); // Output: ef297324db5d630feb16966a564518a8f43bb0395747764be17dc91343a07da2
-                
-                if (analysisStats && (analysisStats.malicious > 0 || analysisStats.suspicious > 0)) {
-                    isMaliciousLink = true;
-                    maliciousDetails = `Malicious: ${analysisStats.malicious}, Suspicious: ${analysisStats.suspicious}. [Report Link](https://www.virustotal.com/gui/url/${idls}/detection)`;
-                    break;
-                }
+              );
+          
+              // Extract the normalized URL from the report
+              const analysisStats = await getAnalysisReport(analysisId);
+              const normalizedUrl = urlReport.data.data;
+const selfLink = normalizedUrl.links.self;
+const id = selfLink.split('/').pop(); // Extracts the last part of the URL after the last '/'
+console.log(id); // Output: ef297324db5d630feb16966a564518a8f43bb0395747764be17dc91343a07da2
+          
+              // Check for malicious link based on analysisStats (if needed)
+              if (analysisStats && (analysisStats.malicious > 0 || analysisStats.suspicious > 0)) {
+                isMaliciousLink = true;
+                maliciousDetails = `Malicious: ${analysisStats.malicious}, Suspicious: ${analysisStats.suspicious}. [Report Link](https://www.virustotal.com/gui/url/${id})`;
+                break;
+              }
             }
-        }
+          }
 
         const moderationChannel = await client.channels.fetch(process.env.MODERATION_CHANNEL_ID);
         if (!moderationChannel) return;
@@ -290,69 +292,6 @@ client.on('messageCreate', async message => {
         }
     } catch (error) {
         console.error('Error processing message:', error);
-    }
-});
-
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-
-    try {
-        const message = interaction.message;
-        const embed = message.embeds[0];
-        if (!embed || !embed.footer || !embed.footer.text) {
-            await interaction.reply({ content: 'Footer information missing. Cannot perform action.', ephemeral: true });
-            return;
-        }
-
-        const userIdMatch = embed.fields.find(field => field.name === 'User').value.match(/\((\d+)\)/);
-        if (!userIdMatch) {
-            await interaction.reply({ content: 'User ID not found in the embed.', ephemeral: true });
-            return;
-        }
-        const userId = userIdMatch[1];
-
-        const user = await client.users.fetch(userId);
-        const member = await interaction.guild.members.fetch(userId);
-
-        if (!user || !member) {
-            await interaction.reply({ content: 'User not found.', ephemeral: true });
-            return;
-        }
-
-        const originalMessageIdMatch = embed.footer.text.match(/Message ID: (\d+)/);
-        if (!originalMessageIdMatch) {
-            await interaction.reply({ content: 'Original message ID not found.', ephemeral: true });
-            return;
-        }
-        const originalMessageId = originalMessageIdMatch[1];
-
-        const originalMessage = await interaction.guild.channels.cache
-            .get(embed.fields.find(field => field.name === 'Channel').value.match(/<#(\d+)>/)[1])
-            .messages.fetch(originalMessageId);
-
-        if (interaction.customId === 'timeout') {
-            await member.timeout(10 * 60 * 1000); // 10 minutes timeout
-            await interaction.reply({ content: `${user.tag} has been timed out for 10 minutes.`, ephemeral: true });
-        } else if (interaction.customId === 'ban') {
-            await member.ban({ reason: 'Moderation action taken' });
-            await interaction.reply({ content: `${user.tag} has been banned.`, ephemeral: true });
-        } else if (interaction.customId === 'delete') {
-            await originalMessage.delete();
-            await interaction.reply({ content: 'Message has been deleted.', ephemeral: true });
-        } else if (interaction.customId === 'false_positive') {
-            user.infractions -= 1;
-            await user.save();
-            await interaction.reply({ content: 'Message marked as false positive.', ephemeral: true });
-        }
-
-        const newEmbed = EmbedBuilder.from(embed)
-            .setColor('#00FF00')
-            .spliceFields(embed.fields.findIndex(field => field.name === 'Message'), 1, { name: 'Action Taken', value: interaction.customId.charAt(0).toUpperCase() + interaction.customId.slice(1) });
-
-        await message.edit({ embeds: [newEmbed], components: [] });
-    } catch (error) {
-        console.error('Error handling interaction:', error);
-        await interaction.reply({ content: 'An error occurred while processing your request.', ephemeral: true });
     }
 });
 
